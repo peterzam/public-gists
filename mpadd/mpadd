@@ -1,0 +1,4 @@
+#! /bin/bash
+echo '{ "command": ["loadfile", "'$1'", "append-play"] }' | socat - /tmp/.mpvsocket
+
+# Alias MPV command to env with  - alias mpv="mpv --input-ipc-server=/tmp/.mpvsocket"
