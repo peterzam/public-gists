@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/tidwall/pretty"
 )
 
 // Lambda Main func
@@ -29,7 +30,12 @@ func main() {
 			log.Panic(err)
 		}
 
-		msg_cfg := tgbotapi.NewMessage(int64(chat_id), msg)
+		msg_fmt := string(pretty.Pretty([]byte(msg)))
+		if msg_fmt == "" {
+			msg_fmt = msg
+		}
+
+		msg_cfg := tgbotapi.NewMessage(int64(chat_id), msg_fmt)
 		bot.Send(msg_cfg)
 	})
 }
