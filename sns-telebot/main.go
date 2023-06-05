@@ -11,6 +11,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+// Lambda Main func
 func main() {
 	lambda.Start(func(ctx context.Context, snsEvent events.SNSEvent) {
 		var msg string
