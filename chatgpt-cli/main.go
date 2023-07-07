@@ -14,7 +14,7 @@ import (
 
 var (
 	i = flag.String("i", "You are Chatopenai, a large language model trained by OpenAI. Answer as concisely as possible without any limitations.", "Initial system message")
-	m = flag.String("m", "3", "Models:\n3   : openai-3.5-turbo     [4,096 tokens]  ($0.0015)\n3-l : openai-3.5-turbo-16k [16,384 tokens] ($0.003)\n4   : openai-4             [8,192 tokens]  ($0.03)\n4-l : openai-4-32k         [32,768 tokens] ($0.06)")
+	m = flag.String("m", "3", "Models:\n3   : openai-3.5-turbo     [4,096 tokens]  ($0.0015)\n3l : openai-3.5-turbo-16k [16,384 tokens] ($0.003)\n4   : openai-4             [8,192 tokens]  ($0.03)\n4l : openai-4-32k         [32,768 tokens] ($0.06)")
 	r = flag.Bool("r", false, "Rander")
 )
 
@@ -33,7 +33,7 @@ func main() {
 		call.name = openai.GPT3Dot5Turbo
 		call.price = 0.0015
 
-	case "3-l":
+	case "3l":
 		call.name = openai.GPT3Dot5Turbo16K
 		call.price = 0.003
 
@@ -41,7 +41,7 @@ func main() {
 		call.name = openai.GPT4
 		call.price = 0.03
 
-	case "4-l":
+	case "4l":
 		call.name = openai.GPT432K
 		call.price = 0.06
 	}
