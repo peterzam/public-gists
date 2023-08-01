@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Virtual Stream
+
+DEV_NO='2'
+
+if [[ $1 = "r" ]] ; then
+    sudo modprobe -r v4l2loopback
+    sudo rm -rf /dev/video${DEV_NO}
+    echo "v4l2loopback removed"
+elif [[ $1 = "p" ]] ; then
+    mpv av://v4l2:/dev/video2 --profile=low-latency --untimed -vo=x11
+elif [[ $1 = "l" ]] ; then
+    v4l2-ctl --list-devices
+else
+    sudo modprobe v4l2loopback video_nr=${DEV_NO} card_label=Video-Loopback exclusive_caps=1
+    wf-recorder -g "$(slurp)" -f /dev/video${DEV_NO} --muxer=v4l2 -d /dev/dri/renderD128 --codec=h264_vaapi --pixel-format=yuv422
+    sudo modprobe -r v4l2loopback
+    sudo rm -rf /dev/video${DEV_NO}
+    echo "v4l2loopback removed"
+fi
