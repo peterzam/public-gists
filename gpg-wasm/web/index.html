@@ -35,6 +35,7 @@
         <button id="encrypt" class="btn danger">Encrypt</button>
         <pre><code id="result"></code></pre>
         <script>
+            var key;
             fetch("https://peterzam.dev/assets/keys/pgp")
                 .then((response) => response.text())
                 .then(function (key) {
@@ -45,10 +46,10 @@
                     ).then((result) => {
                         go.run(result.instance);
                         const encryptBtn = document.getElementById("encrypt");
-                        const message =
-                            document.getElementById("message").value;
                         const resultElement = document.getElementById("result");
                         encryptBtn.addEventListener("click", () => {
+                            const message =
+                                document.getElementById("message").value;
                             var result = window.encrypt(key, message);
                             result = result.replace(
                                 /(?:\r\n|\r|\n)/g,
