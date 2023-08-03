@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta property="og:title" content="Peter Zam" />
+        <meta
+            property="og:image"
+            content="https://peterzam.dev/img/profile.png"
+        />
+        <meta property="og:description" content="me@peterzam.dev" />
+        <meta property="og:type" content="Website" />
+        <meta property="og:url" content="https://peterzam.dev/lab/gpg-wasm" />
+        <meta name="description" content="Personal Website" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Peter Zam's Lab - GPG-WASM</title>
+        <link
+            rel="shortcut icon"
+            type="image/png"
+            href="https://peterzam.dev/img/favicon.ico"
+        />
+        <link rel="stylesheet" href="./style.css" />
+        <script src="./wasm_exec.js" defer></script>
+    </head>
+    <body>
+        <p>
+            Encrypt messages and send me the message via my
+            <a href="https://peterzam.dev/#sec-scnd">contacts</a>.
+        </p>
+        <br />
+        <p>
+            If the encryption button is unresponsive, wait briefly for the 4MB
+            wasm library to load.
+        </p>
+        <textarea id="message"></textarea>
+        <button id="encrypt" class="btn danger">Encrypt</button>
+        <pre><code id="result"></code></pre>
+        <script>
+            fetch("https://peterzam.dev/assets/keys/pgp")
+                .then((response) => response.text())
+                .then(function (key) {
+                    const go = new Go();
+                    WebAssembly.instantiateStreaming(
+                        fetch("lib.wasm"),
+                        go.importObject
+                    ).then((result) => {
+                        go.run(result.instance);
+                        const encryptBtn = document.getElementById("encrypt");
+                        const message =
+                            document.getElementById("message").value;
+                        const resultElement = document.getElementById("result");
+                        encryptBtn.addEventListener("click", () => {
+                            var result = window.encrypt(key, message);
+                            result = result.replace(
+                                /(?:\r\n|\r|\n)/g,
+                                "<br />"
+                            );
+                            resultElement.innerHTML = result;
+                        });
+                    });
+                });
+        </script>
+    </body>
+</html>
