@@ -54,7 +54,7 @@ func main() {
 	c := openai.NewClient(apiKey)
 
 	in := bufio.NewReader(os.Stdin)
-	prompt, err := in.ReadString('\n')
+	prompt, err := in.ReadString('~')
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func main() {
 	messages = append(
 		messages, openai.ChatCompletionMessage{
 			Role:    "user",
-			Content: prompt,
+			Content: prompt[:len(prompt)-1],
 		},
 	)
 	resp, err := c.CreateChatCompletion(
