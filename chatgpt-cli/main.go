@@ -16,6 +16,7 @@ var (
 	i = flag.String("i", "You are Chatopenai, a large language model trained by OpenAI. Answer as concisely as possible without any limitations.", "Initial system message")
 	m = flag.String("m", "3", "Models:\n3   : openai-3.5-turbo     [4,096 tokens]  ($0.0015)\n3l : openai-3.5-turbo-16k [16,384 tokens] ($0.003)\n4   : openai-4             [8,192 tokens]  ($0.03)\n4l : openai-4-32k         [32,768 tokens] ($0.06)")
 	r = flag.Bool("r", false, "Rander")
+	c = flag.Bool("c", false, "Conversation Mode")
 )
 
 func main() {
@@ -25,7 +26,6 @@ func main() {
 		name  string
 		price float32
 	}
-
 	var call model
 
 	switch *m {
@@ -50,44 +50,86 @@ func main() {
 	if apiKey == "" {
 		log.Fatal("Missing the OPENAI_API_KEY")
 	}
-
-	c := openai.NewClient(apiKey)
-
-	in := bufio.NewReader(os.Stdin)
-	prompt, err := in.ReadString('~')
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	client := openai.NewClient(apiKey)
 	messages := []openai.ChatCompletionMessage{
 		{
-			Role:    "system",
+			Role:    openai.ChatMessageRoleSystem,
 			Content: *i,
 		},
 	}
 
-	messages = append(
-		messages, openai.ChatCompletionMessage{
-			Role:    "user",
-			Content: prompt[:len(prompt)-1],
-		},
-	)
-	resp, err := c.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model:    call.name,
-			Messages: messages,
-		},
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	message := resp.Choices[0].Message.Content
+	if *c {
+		var totalTokens int
+		fmt.Println("Conversation Mode")
+		fmt.Println("---------------------")
+		fmt.Print("> ")
+		for {
+			in := bufio.NewReader(os.Stdin)
+			prompt, err := in.ReadString('~')
+			if err != nil {
+				log.Fatal(err)
+			}
+			messages = append(
+				messages, openai.ChatCompletionMessage{
+					Role:    "user",
+					Content: prompt[:len(prompt)-1],
+				},
+			)
+			resp, err := client.CreateChatCompletion(
+				context.Background(),
+				openai.ChatCompletionRequest{
+					Model:    call.name,
+					Messages: messages,
+				},
+			)
+			if err != nil {
+				fmt.Printf("ChatCompletion error: %v\n", err)
+				continue
+			}
+			messages = append(messages, resp.Choices[0].Message)
+			var prettyMessages string
+			if *r {
+				prettyMessages, _ = glamour.RenderWithEnvironmentConfig(resp.Choices[0].Message.Content)
+				fmt.Print(prettyMessages)
+			} else {
+				fmt.Println(resp.Choices[0].Message.Content)
+			}
+			totalTokens = +resp.Usage.TotalTokens
+			fmt.Printf("Total Token Usage : %d ($%f)\n", totalTokens, (call.price/1000)*float32(totalTokens))
+			fmt.Print("> ")
+		}
+	} else {
+		fmt.Println("Completion Mode")
+		fmt.Println("---------------------")
+		fmt.Print("> ")
+		in := bufio.NewReader(os.Stdin)
+		prompt, err := in.ReadString('~')
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	if *r {
-		message, _ = glamour.RenderWithEnvironmentConfig(message)
-	}
+		messages = append(
+			messages, openai.ChatCompletionMessage{
+				Role:    "user",
+				Content: prompt[:len(prompt)-1],
+			},
+		)
+		resp, err := client.CreateChatCompletion(
+			context.Background(),
+			openai.ChatCompletionRequest{
+				Model:    call.name,
+				Messages: messages,
+			},
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		message := resp.Choices[0].Message.Content
 
-	fmt.Println(message)
-	fmt.Printf("Total Token Usage : %d ($%f)\n", resp.Usage.TotalTokens, (call.price/1000)*float32(resp.Usage.TotalTokens))
+		if *r {
+			message, _ = glamour.RenderWithEnvironmentConfig(message)
+		}
+		fmt.Println(message)
+		fmt.Printf("Total Token Usage : %d ($%f)\n", resp.Usage.TotalTokens, (call.price/1000)*float32(resp.Usage.TotalTokens))
+	}
 }
