@@ -129,7 +129,8 @@ func main() {
 		if *r {
 			message, _ = glamour.RenderWithEnvironmentConfig(message)
 		}
+
 		fmt.Println(message)
-		fmt.Printf("Total Token Usage : %d ($%f)\n", resp.Usage.TotalTokens, (call.price/1000)*float32(resp.Usage.TotalTokens))
+		fmt.Printf("Total Token Usage : %d ($%f) <%s>\n", resp.Usage.TotalTokens, (call.price/1000)*float32(resp.Usage.TotalTokens), resp.Model)
 	}
 }
