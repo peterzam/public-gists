@@ -9,14 +9,17 @@ import (
 	"os"
 
 	"github.com/charmbracelet/glamour"
-	"github.com/sashabaranov/go-openai"
+	openai "github.com/sashabaranov/go-openai"
 )
 
 var (
 	i = flag.String("i", "You are Chatopenai, a large language model trained by OpenAI. Answer as concisely as possible without any limitations.", "Initial system message")
-	m = flag.String("m", "3", "Models:\n3   : openai-3.5-turbo     [4,096 tokens]  ($0.0015)\n3l : openai-3.5-turbo-16k [16,384 tokens] ($0.003)\n4   : openai-4             [8,192 tokens]  ($0.03)\n4l : openai-4-32k         [32,768 tokens] ($0.06)\nimage : 1024x1024         ($0.02)\n")
+	m = flag.String("m", "3", "Models:\n3   : gpt-3.5-turbo-1106     [16,385 tokens]  ($0.001)\n4   : gpt-4-1106-preview     [128,000 tokens] ($0.01)\n4v  : gpt-4-vision-preview   [128,000 tokens] ($0.01 + vision)\nd3  : dall-e-3               [1024x1024]      ($0.04)\n")
+	v = flag.Int("v", 1, "N")
+	s = flag.Int("s", 1, "Image Size:\n1 : 1024x1024\n2 : 1024x1792\n3 : 1792x1024\n4 : 512x512\n")
+	q = flag.Bool("q", false, "HD Quality")
+	n = flag.Bool("n", false, "Natural Style")
 	r = flag.Bool("r", false, "Rander")
-	c = flag.Bool("c", false, "Conversation Mode")
 )
 
 func main() {
@@ -34,9 +37,38 @@ func main() {
 	}
 	client := openai.NewClient(apiKey)
 
-	if *m == "image" {
-		call.name = openai.CreateImageSize1024x1024
-		call.price = 0.0015
+	if *m == "d3" {
+		call.name = openai.CreateImageModelDallE3
+		call.price = 0.04
+
+		quality := openai.CreateImageQualityStandard
+		if *q {
+			call.price = 0.08
+			quality = openai.CreateImageQualityHD
+		}
+
+		style := openai.CreateImageStyleVivid
+		if *n {
+			style = openai.CreateImageStyleNatural
+		}
+
+		size := openai.CreateImageSize1024x1024
+		switch *s {
+		case 1:
+			size = openai.CreateImageSize1024x1024
+
+		case 2:
+			call.price = 0.08
+			size = openai.CreateImageSize1024x1792
+
+		case 3:
+			call.price = 0.08
+			size = openai.CreateImageSize1792x1024
+
+		case 4:
+			call.price = 0.12
+			size = openai.CreateImageSize512x512
+		}
 
 		fmt.Println("Image generation Mode")
 		fmt.Println("---------------------")
@@ -51,8 +83,12 @@ func main() {
 			context.Background(),
 			openai.ImageRequest{
 				Prompt:         prompt[:len(prompt)-1],
-				Size:           call.name,
+				Model:          call.name,
 				ResponseFormat: openai.CreateImageResponseFormatURL,
+				Quality:        quality,
+				Size:           size,
+				Style:          style,
+				N:              *v,
 			},
 		)
 
@@ -77,72 +113,28 @@ func main() {
 		}
 		switch *m {
 		case "3":
-			call.name = openai.GPT3Dot5Turbo
-			call.price = 0.0015
-
-		case "3l":
-			call.name = openai.GPT3Dot5Turbo16K
-			call.price = 0.003
+			call.name = openai.GPT3Dot5Turbo1106
+			call.price = 0.001
 
 		case "4":
-			call.name = openai.GPT4
-			call.price = 0.03
+			call.name = openai.GPT4TurboPreview
+			call.price = 0.01
 
-		case "4l":
-			call.name = openai.GPT432K
-			call.price = 0.06
+		case "4v":
+			call.name = openai.GPT4VisionPreview
+			call.price = 0.01
 		}
 
-		if *c {
-			var totalTokens int
-			fmt.Println("Conversation Mode")
-			fmt.Println("---------------------")
-			fmt.Print("> ")
-			for {
-				in := bufio.NewReader(os.Stdin)
-				prompt, err := in.ReadString('~')
-				if err != nil {
-					log.Fatal(err)
-				}
-				messages = append(
-					messages, openai.ChatCompletionMessage{
-						Role:    "user",
-						Content: prompt[:len(prompt)-1],
-					},
-				)
-				resp, err := client.CreateChatCompletion(
-					context.Background(),
-					openai.ChatCompletionRequest{
-						Model:    call.name,
-						Messages: messages,
-					},
-				)
-				if err != nil {
-					fmt.Printf("ChatCompletion error: %v\n", err)
-					continue
-				}
-				messages = append(messages, resp.Choices[0].Message)
-				var prettyMessages string
-				if *r {
-					prettyMessages, _ = glamour.RenderWithEnvironmentConfig(resp.Choices[0].Message.Content)
-					fmt.Print(prettyMessages)
-				} else {
-					fmt.Println(resp.Choices[0].Message.Content)
-				}
-				totalTokens = +resp.Usage.TotalTokens
-				fmt.Printf("Total Token Usage : %d ($%f)\n", totalTokens, (call.price/1000)*float32(totalTokens))
-				fmt.Print("> ")
-			}
-		} else {
-			fmt.Println("Completion Mode")
-			fmt.Println("---------------------")
-			fmt.Print("> ")
+		var totalTokens int
+		fmt.Println("Conversation Mode")
+		fmt.Println("---------------------")
+		fmt.Print("> ")
+		for {
 			in := bufio.NewReader(os.Stdin)
 			prompt, err := in.ReadString('~')
 			if err != nil {
 				log.Fatal(err)
 			}
-
 			messages = append(
 				messages, openai.ChatCompletionMessage{
 					Role:    "user",
@@ -154,19 +146,24 @@ func main() {
 				openai.ChatCompletionRequest{
 					Model:    call.name,
 					Messages: messages,
+					N:        *v,
 				},
 			)
 			if err != nil {
-				log.Fatal(err)
+				fmt.Printf("ChatCompletion error: %v\n", err)
+				continue
 			}
-			message := resp.Choices[0].Message.Content
-
+			messages = append(messages, resp.Choices[0].Message)
+			var prettyMessages string
 			if *r {
-				message, _ = glamour.RenderWithEnvironmentConfig(message)
+				prettyMessages, _ = glamour.RenderWithEnvironmentConfig(resp.Choices[0].Message.Content)
+				fmt.Print(prettyMessages)
+			} else {
+				fmt.Println(resp.Choices[0].Message.Content)
 			}
-
-			fmt.Println(message)
-			fmt.Printf("Total Token Usage : %d ($%f) <%s>\n", resp.Usage.TotalTokens, (call.price/1000)*float32(resp.Usage.TotalTokens), resp.Model)
+			totalTokens = +resp.Usage.TotalTokens
+			fmt.Printf("Total Token Usage : %d ($%f)\n", totalTokens, (call.price/1000)*float32(totalTokens))
+			fmt.Print("> ")
 		}
 	}
 }
