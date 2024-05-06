@@ -1,0 +1,14 @@
+services:
+  flip:
+    image: peterzam/flip
+    build:
+      context: ./
+      dockerfile: ./Containerfile
+    container_name: flip
+    volumes:
+      - ${LAB_PATH}/mount/flip/qbit.csv:/qbit.csv
+    environment:
+      - LISTEN_PORT=80
+      - LISTEN_PATH=/
+    restart: unless-stopped
+

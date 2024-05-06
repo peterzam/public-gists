@@ -1,0 +1,11 @@
+ARG GOLANG_VERSION="1.21.6"
+
+FROM golang:$GOLANG_VERSION-alpine as builder
+COPY ./flip.go /srv/flip.go
+WORKDIR /srv
+RUN go mod init flip && go mod tidy
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-s' -o ./flip
+
+FROM scratch
+COPY --from=builder /srv/flip /
+ENTRYPOINT ["/flip"]
