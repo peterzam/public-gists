@@ -1,0 +1,16 @@
+[core]
+  editor = nvim
+  sshCommand = ssh -i ~/code/config/id_ed25519
+
+[user]
+  email = 
+  name = 
+
+[commit]
+  gpgsign = false
+
+[init]
+  defaultBranch = main
+
+# [includeIf "gitdir:~/code/"]
+#  path = ~/code/config/custom.gitconfig
